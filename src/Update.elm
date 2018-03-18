@@ -12,20 +12,8 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateSearchInput text ->
-            { model | searchInput = text } ! [ performMultiIndexSearch model text model.facetFilters ]
-
-        ProcessSearchResponse (Ok response) ->
-            { model
-                | searchResults = response.hits
-                , errorText = ""
-            }
-                ! []
-
-        ProcessSearchResponse (Err error) ->
-            { model
-                | searchResults = []
-            }
-                ! []
+            { model | searchInput = text }
+                ! [ performMultiIndexSearch model text model.facetFilters ]
 
         ProcessMultiIndexSearchResponse (Ok response) ->
             let
@@ -58,7 +46,8 @@ update msg model =
                         False ->
                             removeFacetFilters facets model.facetFilters
             in
-                { model | facetFilters = newFacetFilters } ! [ performMultiIndexSearch model model.searchInput newFacetFilters ]
+                { model | facetFilters = newFacetFilters }
+                    ! [ performMultiIndexSearch model model.searchInput newFacetFilters ]
 
 
 addFacetFilters : List Facets.FacetType -> List Facets.FacetType -> List Facets.FacetType
@@ -135,57 +124,6 @@ searchHitListDecoder =
 searchResponseListDecoder : Json.Decode.Decoder (List SearchResponse)
 searchResponseListDecoder =
     Json.Decode.list searchResponseDecoder
-
-
-
--- Single Index Search
-
-
-queryUrl : String -> String -> String
-queryUrl algoliaAppId indexName =
-    "https://"
-        ++ algoliaAppId
-        ++ "-dsn.algolia.net/1/indexes/"
-        ++ indexName
-        ++ "/query"
-
-
-searchBody : String -> Json.Encode.Value
-searchBody searchString =
-    let
-        queryString =
-            "query=" ++ searchString
-    in
-        Json.Encode.object
-            [ ( "params", Json.Encode.string queryString ) ]
-
-
-performSearch : Model -> String -> Cmd Msg
-performSearch model searchString =
-    let
-        url =
-            queryUrl model.algoliaApiKey "stops"
-
-        body =
-            Http.jsonBody (searchBody searchString)
-
-        headers =
-            [ Http.header "X-Algolia-API-Key" model.algoliaApiKey
-            , Http.header "X-Algolia-Application-Id" model.algoliaApiKey
-            ]
-
-        httpRequest =
-            Http.request
-                { method = "POST"
-                , headers = headers
-                , url = url
-                , body = body
-                , expect = Http.expectJson searchResponseDecoder
-                , timeout = Nothing
-                , withCredentials = False
-                }
-    in
-        Http.send ProcessSearchResponse httpRequest
 
 
 

@@ -89,6 +89,5 @@ init flags =
 
 type Msg
     = UpdateSearchInput String
-    | ProcessSearchResponse (Result Http.Error SearchResponse)
     | ProcessMultiIndexSearchResponse (Result Http.Error MultiIndexSearchResponse)
     | UpdateFacet (List Facets.FacetType) Bool
