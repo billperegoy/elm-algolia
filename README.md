@@ -30,25 +30,25 @@ and provide API keys. Here is an example:
 
 ```
 <html>
---  <head>
-      <script type="text/javascript" src="dist/bundle.js"></script>
-    </head>
-    <body>
-      <div id="elm-app"></div>
+  <head>
+    <script type="text/javascript" src="dist/bundle.js"></script>
+  </head>
+  <body>
+    <div id="elm-app"></div>
 
-      <script type="text/javascript">
-        var elmDiv = document.getElementById('elm-app');
-        var algoliaApiKey = "<API Key>";
-        var algoliaApplicationId = "<Application ID>";
-        Elm.Main.embed(elmDiv,
-                       {
-                         algoliaApiKey: algoliaApiKey,
-                         algoliaApplicationId: algoliaApplicationId
-                       }
-                      );
-      </script>
-    </body>
-  </html>
+    <script type="text/javascript">
+      var elmDiv = document.getElementById('elm-app');
+      var algoliaApiKey = "<API Key>";
+      var algoliaApplicationId = "<Application ID>";
+      Elm.Main.embed(elmDiv,
+                     {
+                       algoliaApiKey: algoliaApiKey,
+                       algoliaApplicationId: algoliaApplicationId
+                     }
+                    );
+    </script>
+  </body>
+</html>
 ```
 
 
