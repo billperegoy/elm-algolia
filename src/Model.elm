@@ -1,6 +1,7 @@
 module Model exposing (..)
 
 import Http
+import Facets
 
 
 type alias Flags =
@@ -13,6 +14,7 @@ type alias Model =
     { algoliaApiKey : String
     , algoliaApplicationId : String
     , searchInput : String
+    , facetFilters : List Facets.FacetType
     , searchResults : List SearchHit
     , errorText : String
     }
@@ -78,6 +80,7 @@ init flags =
     { algoliaApiKey = flags.algoliaApiKey
     , algoliaApplicationId = flags.algoliaApplicationId
     , searchInput = ""
+    , facetFilters = []
     , searchResults = []
     , errorText = ""
     }
@@ -88,3 +91,4 @@ type Msg
     = UpdateSearchInput String
     | ProcessSearchResponse (Result Http.Error SearchResponse)
     | ProcessMultiIndexSearchResponse (Result Http.Error MultiIndexSearchResponse)
+    | UpdateFacet (List Facets.FacetType) Bool

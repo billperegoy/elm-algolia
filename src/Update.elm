@@ -5,13 +5,14 @@ import Json.Decode
 import Json.Encode
 import Http
 import Model exposing (..)
+import Facets
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateSearchInput text ->
-            { model | searchInput = text } ! [ performMultiIndexSearch model text ]
+            { model | searchInput = text } ! [ performMultiIndexSearch model text model.facetFilters ]
 
         ProcessSearchResponse (Ok response) ->
             { model
@@ -47,6 +48,33 @@ update msg model =
             }
                 ! []
 
+        UpdateFacet facets value ->
+            let
+                newFacetFilters =
+                    case value of
+                        True ->
+                            addFacetFilters facets model.facetFilters
+
+                        False ->
+                            removeFacetFilters facets model.facetFilters
+            in
+                { model | facetFilters = newFacetFilters } ! [ performMultiIndexSearch model model.searchInput newFacetFilters ]
+
+
+addFacetFilters : List Facets.FacetType -> List Facets.FacetType -> List Facets.FacetType
+addFacetFilters newFacets facets =
+    List.append facets newFacets
+
+
+removeFacetFilters : List Facets.FacetType -> List Facets.FacetType -> List Facets.FacetType
+removeFacetFilters facetsToRemove facets =
+    List.foldl (\elem accum -> removeOneFacet elem accum) facets facetsToRemove
+
+
+removeOneFacet : Facets.FacetType -> List Facets.FacetType -> List Facets.FacetType
+removeOneFacet facet facets =
+    List.filter (\elem -> elem /= facet) facets
+
 
 stopDecoder : Json.Decode.Decoder Stop
 stopDecoder =
@@ -60,7 +88,7 @@ stopSearchHitDecoder =
     Json.Decode.Pipeline.decode StopSearchHit
         |> Json.Decode.Pipeline.required "url" Json.Decode.string
         |> Json.Decode.Pipeline.required "stop" stopDecoder
-        |> Json.Decode.map (\elem -> StopHit elem)
+        |> Json.Decode.map StopHit
 
 
 routeDecoder : Json.Decode.Decoder Route
@@ -75,14 +103,14 @@ routeSearchHitDecoder =
     Json.Decode.Pipeline.decode RouteSearchHit
         |> Json.Decode.Pipeline.required "url" Json.Decode.string
         |> Json.Decode.Pipeline.required "route" stopDecoder
-        |> Json.Decode.map (\elem -> RouteHit elem)
+        |> Json.Decode.map RouteHit
 
 
 drupalSearchHitDecoder : Json.Decode.Decoder SearchHit
 drupalSearchHitDecoder =
     Json.Decode.Pipeline.decode DrupalSearchHit
         |> Json.Decode.Pipeline.required "content_title" Json.Decode.string
-        |> Json.Decode.map (\elem -> DrupalHit elem)
+        |> Json.Decode.map DrupalHit
 
 
 multiIndexSearchResponseDecoder : Json.Decode.Decoder MultiIndexSearchResponse
@@ -173,42 +201,49 @@ multiIndexQueryUrl algoliaAppId indexName =
         ++ "/queries"
 
 
-multiIndexSearchBody : String -> Json.Encode.Value
-multiIndexSearchBody searchString =
+indexObject : String -> String -> Json.Encode.Value
+indexObject queryString indexName =
+    Json.Encode.object
+        [ ( "indexName", Json.Encode.string indexName )
+        , ( "params", Json.Encode.string queryString )
+        ]
+
+
+multiIndexSearchBody : Model -> String -> List Facets.FacetType -> Json.Encode.Value
+multiIndexSearchBody model searchString filters =
     let
+        facets =
+            "[*]"
+
+        facetFilters =
+            filters
+                |> Facets.searchString
+
+        facetString =
+            "facets=" ++ facets ++ "&facetFilters=" ++ facetFilters
+
         queryString =
-            "query=" ++ searchString
+            "query=" ++ searchString ++ "&" ++ facetString
 
-        index1 =
-            Json.Encode.object
-                [ ( "indexName", Json.Encode.string "routes" )
-                , ( "params", Json.Encode.string queryString )
-                ]
-
-        index2 =
-            Json.Encode.object
-                [ ( "indexName", Json.Encode.string "stops" )
-                , ( "params", Json.Encode.string queryString )
-                ]
-
-        index3 =
-            Json.Encode.object
-                [ ( "indexName", Json.Encode.string "drupal" )
-                , ( "params", Json.Encode.string queryString )
-                ]
+        indexObjects =
+            [ "routes", "stops", "drupal" ]
+                |> List.map (indexObject queryString)
     in
         Json.Encode.object
-            [ ( "requests", Json.Encode.list [ index1, index2, index3 ] ) ]
+            [ ( "requests"
+              , Json.Encode.list indexObjects
+              )
+            ]
 
 
-performMultiIndexSearch : Model -> String -> Cmd Msg
-performMultiIndexSearch model searchString =
+performMultiIndexSearch : Model -> String -> List Facets.FacetType -> Cmd Msg
+performMultiIndexSearch model searchString facets =
     let
         url =
             multiIndexQueryUrl model.algoliaApplicationId "stops"
 
         body =
-            Http.jsonBody (multiIndexSearchBody searchString)
+            Http.jsonBody (multiIndexSearchBody model searchString facets)
 
         headers =
             [ Http.header "X-Algolia-API-Key" model.algoliaApiKey
