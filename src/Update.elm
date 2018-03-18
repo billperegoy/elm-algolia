@@ -14,19 +14,6 @@ update msg model =
         UpdateSearchInput text ->
             { model | searchInput = text } ! [ performMultiIndexSearch model text model.facetFilters ]
 
-        ProcessSearchResponse (Ok response) ->
-            { model
-                | searchResults = response.hits
-                , errorText = ""
-            }
-                ! []
-
-        ProcessSearchResponse (Err error) ->
-            { model
-                | searchResults = []
-            }
-                ! []
-
         ProcessMultiIndexSearchResponse (Ok response) ->
             let
                 results =
@@ -158,34 +145,6 @@ searchBody searchString =
     in
         Json.Encode.object
             [ ( "params", Json.Encode.string queryString ) ]
-
-
-performSearch : Model -> String -> Cmd Msg
-performSearch model searchString =
-    let
-        url =
-            queryUrl model.algoliaApiKey "stops"
-
-        body =
-            Http.jsonBody (searchBody searchString)
-
-        headers =
-            [ Http.header "X-Algolia-API-Key" model.algoliaApiKey
-            , Http.header "X-Algolia-Application-Id" model.algoliaApiKey
-            ]
-
-        httpRequest =
-            Http.request
-                { method = "POST"
-                , headers = headers
-                , url = url
-                , body = body
-                , expect = Http.expectJson searchResponseDecoder
-                , timeout = Nothing
-                , withCredentials = False
-                }
-    in
-        Http.send ProcessSearchResponse httpRequest
 
 
 
