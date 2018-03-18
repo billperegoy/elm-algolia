@@ -12,7 +12,8 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateSearchInput text ->
-            { model | searchInput = text } ! [ performMultiIndexSearch model text model.facetFilters ]
+            { model | searchInput = text }
+                ! [ performMultiIndexSearch model text model.facetFilters ]
 
         ProcessMultiIndexSearchResponse (Ok response) ->
             let
@@ -45,7 +46,8 @@ update msg model =
                         False ->
                             removeFacetFilters facets model.facetFilters
             in
-                { model | facetFilters = newFacetFilters } ! [ performMultiIndexSearch model model.searchInput newFacetFilters ]
+                { model | facetFilters = newFacetFilters }
+                    ! [ performMultiIndexSearch model model.searchInput newFacetFilters ]
 
 
 addFacetFilters : List Facets.FacetType -> List Facets.FacetType -> List Facets.FacetType
@@ -122,29 +124,6 @@ searchHitListDecoder =
 searchResponseListDecoder : Json.Decode.Decoder (List SearchResponse)
 searchResponseListDecoder =
     Json.Decode.list searchResponseDecoder
-
-
-
--- Single Index Search
-
-
-queryUrl : String -> String -> String
-queryUrl algoliaAppId indexName =
-    "https://"
-        ++ algoliaAppId
-        ++ "-dsn.algolia.net/1/indexes/"
-        ++ indexName
-        ++ "/query"
-
-
-searchBody : String -> Json.Encode.Value
-searchBody searchString =
-    let
-        queryString =
-            "query=" ++ searchString
-    in
-        Json.Encode.object
-            [ ( "params", Json.Encode.string queryString ) ]
 
 
 
