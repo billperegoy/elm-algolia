@@ -158,7 +158,7 @@ multiIndexSearchBody model searchString filters =
                 |> Facets.searchString
 
         facetString =
-            "facets=" ++ facets ++ "&facetFilters=" ++ facetFilters
+            "hitsPerPage=5" ++ "&facets=" ++ facets ++ "&facetFilters=" ++ facetFilters
 
         queryString =
             "query=" ++ searchString ++ "&" ++ facetString
