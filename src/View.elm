@@ -139,9 +139,9 @@ eventsFacetView model =
 resultsView : Model -> Html Msg
 resultsView model =
     div [ class "col-md-8" ]
-        [ routesResultsView model.searchResults
-        , stopsResultsView model.searchResults
-        , drupalResultsView model.searchResults
+        [ routesResultsView "Routes" model.searchResults
+        , stopsResultsView "Stops" model.searchResults
+        , drupalResultsView "Content" model.searchResults
         , searchErrors model
         ]
 
@@ -156,19 +156,16 @@ searchErrors model =
     p [] [ text model.errorText ]
 
 
-stopsResultsView : List SearchHit -> Html Msg
-stopsResultsView hits =
+stopsResultsView : String -> List SearchHit -> Html Msg
+stopsResultsView title hits =
     div []
-        [ h2 [] [ text "Stops" ]
+        [ h2 [] [ text title ]
         , div []
             (List.map
                 (\hit ->
                     case hit of
                         StopHit h ->
-                            div []
-                                [ a [ href ("https://www.mbta.com/stops/" ++ h.stop.id) ]
-                                    [ text h.stop.name ]
-                                ]
+                            hitView hit
 
                         _ ->
                             div [] []
@@ -178,19 +175,16 @@ stopsResultsView hits =
         ]
 
 
-routesResultsView : List SearchHit -> Html Msg
-routesResultsView hits =
+routesResultsView : String -> List SearchHit -> Html Msg
+routesResultsView title hits =
     div []
-        [ h2 [] [ text "Routes" ]
+        [ h2 [] [ text title ]
         , div []
             (List.map
                 (\hit ->
                     case hit of
                         RouteHit h ->
-                            div []
-                                [ a [ href ("https://www.mbta.com/schedules/" ++ h.route.id ++ "/line") ]
-                                    [ text h.route.name ]
-                                ]
+                            hitView hit
 
                         _ ->
                             div [] []
@@ -200,19 +194,16 @@ routesResultsView hits =
         ]
 
 
-drupalResultsView : List SearchHit -> Html Msg
-drupalResultsView hits =
+drupalResultsView : String -> List SearchHit -> Html Msg
+drupalResultsView title hits =
     div []
-        [ h2 [] [ text "Content" ]
+        [ h2 [] [ text title ]
         , div []
             (List.map
                 (\hit ->
                     case hit of
                         DrupalHit h ->
-                            div []
-                                [ a [ href ("#") ]
-                                    [ text h.contentTitle ]
-                                ]
+                            hitView hit
 
                         _ ->
                             div [] []
@@ -220,3 +211,37 @@ drupalResultsView hits =
                 hits
             )
         ]
+
+
+hitView : SearchHit -> Html Msg
+hitView hit =
+    div []
+        [ a [ href ("#") ]
+            [ text (hitTitle hit) ]
+        ]
+
+
+hitUrl : SearchHit -> String
+hitUrl hit =
+    case hit of
+        StopHit h ->
+            "https://www.mbta.com/stops/" ++ h.stop.id
+
+        RouteHit h ->
+            "https://www.mbta.com/schedules/" ++ h.route.id ++ "/line"
+
+        DrupalHit h ->
+            "#"
+
+
+hitTitle : SearchHit -> String
+hitTitle hit =
+    case hit of
+        StopHit h ->
+            h.stop.name
+
+        RouteHit h ->
+            h.route.name
+
+        DrupalHit h ->
+            h.contentTitle
